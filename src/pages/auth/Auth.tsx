@@ -25,6 +25,18 @@ function Shell({ title, subtitle, children, wide }: { title: string; subtitle?: 
   );
 }
 
+/** Cadastro público sem depender de e-mail: a Edge Function cria a conta já confirmada e o site entra em seguida. */
+async function registerAccount(body: Record<string, unknown>, email: string, password: string) {
+  const { error } = await db().functions.invoke('signup', { body });
+  if (error) {
+    let code = '';
+    try { code = (await (error as unknown as { context: Response }).context.json()).error; } catch { /* sem corpo */ }
+    throw new Error(code || 'falha_cadastro');
+  }
+  const { error: loginError } = await db().auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+  if (loginError) throw loginError;
+}
+
 const passwordRule = (p: string) => p.length >= 8 && /[A-Za-z]/.test(p) && /\d/.test(p);
 
 /* ───────────────────────── Login (profissional, empresa ou admin) ───────────────────────── */
@@ -97,7 +109,6 @@ export function SignupProfessional() {
   const nav = useNavigate();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<Record<string, string>>({});
-  const [done, setDone] = useState(false);
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -110,19 +121,11 @@ export function SignupProfessional() {
     setErr(errors);
     if (Object.keys(errors).length) return;
     setBusy(true);
-    const { data, error } = await db().auth.signUp({
-      email: f.email.trim(), password: f.password,
-      options: {
-        emailRedirectTo: `${location.origin}/painel/profissional`,
-        data: { role: 'professional', full_name: f.full_name.trim(), phone: f.phone, lgpd_consent: true },
-      },
-    });
-    setBusy(false);
-    if (error) return toast('error', humanError(error));
-    if (data.session) nav('/painel/profissional?aba=perfil'); else setDone(true);
+    try {
+      await registerAccount({ role: 'professional', email: f.email, full_name: f.full_name, phone: f.phone, password: f.password, terms: true, website_hp: f.website_hp }, f.email, f.password);
+      nav('/painel/profissional?aba=perfil');
+    } catch (e) { toast('error', humanError(e)); } finally { setBusy(false); }
   };
-
-  if (done) return <Shell title="Confirme seu e-mail"><p className="text-center text-sm text-white/65">Enviamos um link de confirmação. Depois de confirmar, entre e continue o perfil de onde parou.</p></Shell>;
 
   return (
     <Shell title="Cadastro de profissional" subtitle="Etapa 1 de 6 — sua conta. O restante do perfil é salvo por etapas no seu painel.">
@@ -134,6 +137,7 @@ export function SignupProfessional() {
           <Field label="Senha *" error={err.password}><input name="password" type="password" required autoComplete="new-password" className="input" aria-invalid={!!err.password} /></Field>
           <Field label="Confirmar senha *" error={err.confirm}><input name="confirm" type="password" required autoComplete="new-password" className="input" aria-invalid={!!err.confirm} /></Field>
         </div>
+        <input name="website_hp" tabIndex={-1} autoComplete="off" aria-hidden className="absolute left-[-9999px] h-0 w-0 opacity-0" />
         <label className="flex gap-3 text-xs leading-relaxed text-white/60">
           <input type="checkbox" required className="mt-0.5 accent-[#B9BEC5]" />
           <span>Li e aceito os <Link to="/termos" target="_blank" className="text-silver-light underline">Termos de Uso</Link> e autorizo o tratamento dos meus dados conforme a <Link to="/privacidade" target="_blank" className="text-silver-light underline">Política de Privacidade</Link> (LGPD).</span>
@@ -150,7 +154,6 @@ export function SignupCompany() {
   const nav = useNavigate();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<Record<string, string>>({});
-  const [done, setDone] = useState(false);
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -158,30 +161,19 @@ export function SignupCompany() {
     const errors: Record<string, string> = {};
     const cnpj = f.cnpj.replace(/\D/g, '');
     if (cnpj && cnpj.length !== 14) errors.cnpj = 'CNPJ deve ter 14 dígitos.';
-    if (/@(gmail|hotmail|outlook|yahoo|live|icloud)\./i.test(f.email)) errors.email = 'Use preferencialmente um e-mail corporativo (domínio da empresa).';
     if (!passwordRule(f.password)) errors.password = 'Mínimo 8 caracteres, com letras e números.';
     setErr(errors);
     if (errors.cnpj || errors.password) return;
     setBusy(true);
-    const { data, error } = await db().auth.signUp({
-      email: f.email.trim(), password: f.password,
-      options: {
-        emailRedirectTo: `${location.origin}/painel/empresa`,
-        data: {
-          role: 'company', full_name: f.responsible_name.trim(), phone: f.phone,
-          company: {
-            name: f.name.trim(), cnpj, responsible_role: f.responsible_role, whatsapp: f.whatsapp, city: f.city, state: f.state,
-            sector: f.sector, website: f.website, description: f.description, terms_accepted: f.terms === 'on',
-          },
-        },
-      },
-    });
-    setBusy(false);
-    if (error) return toast('error', humanError(error));
-    if (data.session) nav('/painel/empresa'); else setDone(true);
+    if (f.terms !== 'on') return toast('error', 'É preciso aceitar os Termos de Uso e a Política de Privacidade.');
+    try {
+      await registerAccount({
+        role: 'company', email: f.email, full_name: f.responsible_name, phone: f.phone, password: f.password, terms: true, website_hp: f.website_hp,
+        company: { name: f.name, cnpj, responsible_role: f.responsible_role, whatsapp: f.whatsapp, city: f.city, state: f.state, sector: f.sector, website: f.website, description: f.description },
+      }, f.email, f.password);
+      nav('/painel/empresa');
+    } catch (e) { toast('error', humanError(e)); } finally { setBusy(false); }
   };
-
-  if (done) return <Shell title="Confirme seu e-mail"><p className="text-center text-sm text-white/65">Enviamos um link de verificação para o e-mail corporativo. Após confirmar, entre no painel da empresa.</p></Shell>;
 
   return (
     <Shell wide title="Cadastro de empresa" subtitle="Dados usados para verificação e para o seu painel. Nada é exibido publicamente sem autorização.">
@@ -199,6 +191,7 @@ export function SignupCompany() {
         <Field label="Setor de atuação *"><select name="sector" required className="input" defaultValue=""><option value="" disabled>Selecione</option>{AREAS.map((a) => <option key={a}>{a}</option>)}</select></Field>
         <Field label="Site (opcional)"><input name="website" type="url" placeholder="https://" className="input" /></Field>
         <Field label="Descrição da organização" className="sm:col-span-2"><textarea name="description" rows={3} className="input" /></Field>
+        <input name="website_hp" tabIndex={-1} autoComplete="off" aria-hidden className="absolute left-[-9999px] h-0 w-0 opacity-0" />
         <label className="flex gap-3 text-xs leading-relaxed text-white/60 sm:col-span-2">
           <input type="checkbox" name="terms" required className="mt-0.5 accent-[#B9BEC5]" />
           <span>Aceito os <Link to="/termos" target="_blank" className="text-silver-light underline">Termos de Uso</Link> e a <Link to="/privacidade" target="_blank" className="text-silver-light underline">Política de Privacidade</Link>. *</span>

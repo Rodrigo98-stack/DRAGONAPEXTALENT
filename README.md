@@ -22,13 +22,13 @@ Sem o `.env.local`, o site institucional funciona normalmente. Login, cadastros 
 | `npm run dev` | servidor de desenvolvimento |
 | `npm run build` | checagem de tipos + build de produção em `dist/` |
 | `npm test` | testes unitários (gerador PIX e índice de compatibilidade) |
-| `npm run test:db` | roda as 9 migrações num PostgreSQL embutido e valida 64 regras de negócio e segurança |
+| `npm run test:db` | roda as 10 migrações num PostgreSQL embutido e valida 64 regras de negócio e segurança |
 
 ## 2. Configurar o Supabase
 
 1. Crie um projeto em https://supabase.com e copie **Project URL** e **anon public key** para o `.env.local`.
 2. No **SQL Editor**, execute em ordem os arquivos de `supabase/migrations/`:
-   `0001_schema.sql` → `0002_functions.sql` → `0003_rls_storage.sql` → `0004_cron.sql` → `0005_webhook.sql` → `0006_hardening.sql` → `0007_password_audit.sql` → `0008_admin_set_password.sql` → `0009_admin_create_user.sql`
+   `0001_schema.sql` → `0002_functions.sql` → `0003_rls_storage.sql` → `0004_cron.sql` → `0005_webhook.sql` → `0006_hardening.sql` → `0007_password_audit.sql` → `0008_admin_set_password.sql` → `0009_admin_create_user.sql` → `0010_signup_attempts.sql`
    (ou `supabase link` + `supabase db push`).
 3. **Authentication → URL Configuration**: defina o *Site URL* (domínio de produção) e adicione
    `http://localhost:5180/**` em *Redirect URLs*. Mantenha **Confirm email** ativado.
@@ -167,3 +167,17 @@ renovada. Pausar ou encerrar antes devolve os dias inteiros não usados. A admin
   sem depender de e-mail (RPC `admin_create_user`). O e-mail nasce confirmado pela administração; no **primeiro acesso** a pessoa troca a senha e
   **aceita os Termos e a Política de Privacidade** (RPC `complete_first_access`) — o consentimento nunca é registrado em nome dela.
   Útil enquanto o SMTP próprio não estiver configurado: o e-mail padrão do Supabase tem limite de envios por hora para o projeto todo.
+
+## 9. Cadastro público sem depender de e-mail
+
+O e-mail padrão do Supabase limita os envios por hora para o **projeto inteiro** (erro `429: email rate limit exceeded`) e só entrega a membros da equipe.
+Para o cliente cadastrar-se sempre com tranquilidade, os formulários de profissional e de empresa chamam a Edge Function **`signup`**
+(`supabase/functions/signup`), que cria a conta já confirmada e o site faz o login em seguida.
+
+- Proteções: validação no servidor, aceite obrigatório dos Termos, campo escondido anti-robô (*honeypot*), limite de 30 cadastros por hora por IP
+  (tabela `signup_attempts`) e CORS restrito ao site publicado e ao `localhost`.
+- **Contrapartida:** o e-mail digitado **não é verificado** (a conta recebe `app_metadata.email_unverified = true`). Erro de digitação no e-mail
+  significa que o link de "esqueci a senha" não chega; nesses casos o administrador define uma nova senha pelo painel.
+- Para voltar à verificação por e-mail: configure um SMTP próprio (Resend, Brevo, SendGrid…) em *Authentication → SMTP* e troque o cadastro
+  de volta para `supabase.auth.signUp` em `src/pages/auth/Auth.tsx`.
+- Deploy: `supabase functions deploy signup --no-verify-jwt` (a função usa a `service_role` do próprio ambiente do Supabase; nunca vai para o navegador).
