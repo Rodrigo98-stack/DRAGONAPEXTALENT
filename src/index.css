@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root { color-scheme: dark; }
+  html { scroll-behavior: smooth; }
+  body { @apply bg-ink text-white font-sans antialiased; text-rendering: optimizeLegibility; }
+  ::selection { background: #B9BEC5; color: #0A0A0A; }
+  :focus-visible { outline: 2px solid #EEF0F2; outline-offset: 3px; border-radius: 6px; }
+  h1, h2, h3 { letter-spacing: -0.01em; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  }
+}
+
+@layer components {
+  .container-x { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
+  .eyebrow { @apply text-[11px] font-semibold uppercase tracking-widest2 text-silver; }
+  /* Prata escovada: faixas claras e escuras alternadas, como o metal da logo */
+  .silver-text {
+    background: linear-gradient(100deg, #8A9098 0%, #F4F6F8 22%, #9EA4AC 40%, #FFFFFF 55%, #7D838B 72%, #E6E9EC 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hairline { background: linear-gradient(90deg, transparent, #B9BEC588, transparent); height: 1px; }
+
+  .btn { @apply inline-flex whitespace-nowrap items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition duration-300 disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-silver {
+    @apply btn text-ink;
+    background: linear-gradient(180deg, #FAFBFC 0%, #D5D9DE 38%, #A7ADB5 62%, #E3E6EA 100%);
+    box-shadow: inset 0 1px 0 #FFFFFF, inset 0 -1px 0 #7D838B, 0 10px 30px -12px #B9BEC580;
+  }
+  .btn-silver:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); box-shadow: inset 0 1px 0 #FFFFFF, inset 0 -1px 0 #7D838B, 0 16px 40px -14px #B9BEC5aa; }
+  .btn-ghost { @apply btn border border-white/15 bg-white/[0.03] text-white hover:border-silver/60 hover:bg-silver/10; }
+  .btn-sm { @apply px-3.5 py-2 text-xs; }
+  .btn-danger { @apply btn border border-red-400/30 text-red-200 hover:bg-red-500/10; }
+
+  .card { @apply rounded-2xl border border-white/[0.08] bg-ink-700/60 backdrop-blur-sm; }
+  .card-silver { @apply card; border-color: #B9BEC540; background: linear-gradient(160deg, #1D1E21 0%, #121212 55%, #18191C 100%); box-shadow: inset 0 1px 0 #FFFFFF14; }
+
+  .label { @apply mb-1.5 block text-xs font-medium text-smoke; }
+  .input {
+    @apply w-full rounded-xl border border-white/10 bg-ink-800 px-3.5 py-2.5 text-sm text-white placeholder:text-white/30
+           transition focus:border-silver/70 focus:outline-none focus:ring-2 focus:ring-silver/20;
+  }
+  .input[aria-invalid='true'] { @apply border-red-400/70; }
+  select.input { @apply pr-8; }
+  .hint { @apply mt-1 text-xs text-white/45; }
+  .err { @apply mt-1 text-xs text-red-300; }
+
+  .badge { @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium; }
+  .tone-ok { @apply border-emerald-400/30 bg-emerald-400/10 text-emerald-200; }
+  .tone-warn { @apply border-amber-400/30 bg-amber-400/10 text-amber-200; }
+  .tone-bad { @apply border-red-400/30 bg-red-400/10 text-red-200; }
+  .tone-info { @apply border-sky-400/30 bg-sky-400/10 text-sky-200; }
+  .tone-silver { @apply border-silver/40 bg-silver/10 text-silver-light; }
+  .tone-muted { @apply border-white/15 bg-white/5 text-white/60; }
+
+  .tab { @apply whitespace-nowrap rounded-full px-4 py-2 text-sm text-white/60 transition hover:text-white; }
+  .tab-active { @apply bg-silver/15 text-silver-light ring-1 ring-silver/30; }
+
+  .table { @apply w-full text-left text-sm; }
+  .table th { @apply border-b border-white/10 px-3 py-2.5 text-xs font-medium uppercase tracking-wider text-white/45; }
+  .table td { @apply border-b border-white/5 px-3 py-3 align-top; }
+}
+
+/* Revelação ao rolar */
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity 1s cubic-bezier(.2,.7,.2,1), transform 1s cubic-bezier(.2,.7,.2,1); }
+.reveal.is-in { opacity: 1; transform: none; }
+
+/* Luz que segue o cursor nos cartões */
+.spot { position: relative; overflow: hidden; }
+.spot::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .4s;
+  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), #B9BEC51f, transparent 45%);
+}
+.spot:hover::before { opacity: 1; }
+
+/* Grão cinematográfico sutil */
+.grain::after {
+  content: ''; position: absolute; inset: -50%; pointer-events: none; opacity: .06; z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Tratamento das fotos para a paleta preto e prata metálica */
+.duotone { position: relative; isolation: isolate; }
+.duotone img { filter: grayscale(1) contrast(1.2) brightness(.82); }
+.duotone::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, #CFD5DC 0%, #2A2F35 100%); mix-blend-mode: color; opacity: .25; pointer-events: none; }
+.duotone:hover img { filter: grayscale(1) contrast(1.1) brightness(1); }
+.duotone img, .duotone::after { transition: filter 1.2s ease, opacity 1.2s ease; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
