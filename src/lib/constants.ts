@@ -60,4 +60,8 @@ export const CHARGE_STATUS: Record<string, string> = {
   awaiting: 'Aguardando pagamento', confirmed: 'Confirmado', cancelled: 'Cancelado', failed: 'Falhou',
 };
 
-export const CONTACT = { city: 'Recife — PE' }; // e-mail, WhatsApp e redes: preencha quando houver canais oficiais
+export const CONTACT = {
+  city: 'Recife — PE',
+  whatsappDisplay: '(81) 99242-4586',
+  whatsappLink: 'https://wa.me/5581992424586?text=' + encodeURIComponent('Olá! Preciso de suporte na DRAGON APEX TALENT.'),
+}; // e-mail e redes: preencha quando houver canais oficiais

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { LogoImage } from './Logo';
 import { CONTACT } from '../lib/constants';
+import { SupportBox } from './SupportBox';
 
 export function Footer() {
   return (
@@ -19,9 +20,12 @@ export function Footer() {
         <FooterCol title="Institucional" links={[
           ['/sobre', 'Sobre nós'], ['/faq', 'Perguntas frequentes'], ['/contato', 'Contato'],
         ]} />
-        <FooterCol title="Legal" links={[
-          ['/privacidade', 'Política de Privacidade'], ['/termos', 'Termos de Uso'],
-        ]} />
+        <div className="flex flex-col gap-10">
+          <FooterCol title="Legal" links={[
+            ['/privacidade', 'Política de Privacidade'], ['/termos', 'Termos de Uso'],
+          ]} />
+          <SupportBox />
+        </div>
       </div>
       <div className="border-t border-white/[0.06]">
         <div className="container-x flex flex-col items-center justify-between gap-3 py-6 text-xs text-white/40 sm:flex-row">

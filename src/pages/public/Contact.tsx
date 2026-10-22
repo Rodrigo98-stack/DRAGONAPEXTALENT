@@ -32,6 +32,8 @@ export default function Contact() {
       <section className="container-x grid gap-12 py-16 lg:grid-cols-[1fr_1.4fr]">
         <div className="space-y-6 text-sm text-white/60">
           <div><div className="eyebrow mb-2">Base</div>{CONTACT.city}</div>
+          <div><div className="eyebrow mb-2">WhatsApp</div>
+            <a href={CONTACT.whatsappLink} target="_blank" rel="noopener noreferrer" className="text-silver-light underline-offset-4 hover:underline">{CONTACT.whatsappDisplay}</a></div>
           <div><div className="eyebrow mb-2">Atendimento</div>Pelo formulário ao lado. As mensagens ficam registradas no painel administrativo.</div>
         </div>
         {sent ? (
