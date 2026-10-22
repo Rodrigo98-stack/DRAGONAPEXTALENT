@@ -5,6 +5,7 @@ import { date, humanError, money } from '../../lib/format';
 import type { Company } from '../../lib/types';
 import { Badge, EmptyState, Modal, Spinner } from '../../components/ui';
 import { useToast } from '../../components/Toast';
+import { SetPasswordButton } from '../../components/SetPasswordButton';
 
 type Row = Company & { jobs: { status: string }[] };
 
@@ -49,6 +50,7 @@ export function AdminCompanies() {
               <td><div className="flex flex-wrap justify-end gap-2">
                 <button className="btn-ghost btn-sm" onClick={() => patch(c, { verified: !c.verified }, c.verified ? 'Verificação removida.' : 'Empresa verificada.')}>{c.verified ? 'Desverificar' : 'Verificar'}</button>
                 <button className="btn-ghost btn-sm" onClick={() => adjust(c)}>Créditos</button>
+                <SetPasswordButton userId={c.owner_id} name={c.responsible_name} email={c.corporate_email} />
                 <button className={c.suspended ? 'btn-silver btn-sm' : 'btn-danger btn-sm'} onClick={() => confirm(c.suspended ? 'Reativar conta?' : 'Suspender conta? A empresa não poderá criar nem publicar vagas.') && patch(c, { suspended: !c.suspended }, c.suspended ? 'Conta reativada.' : 'Conta suspensa.')}>{c.suspended ? 'Reativar' : 'Suspender'}</button>
               </div></td>
             </tr>

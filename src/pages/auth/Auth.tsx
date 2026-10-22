@@ -242,11 +242,14 @@ export function UpdatePassword() {
     if (!passwordRule(p)) return toast('error', 'Mínimo 8 caracteres, com letras e números.');
     const { error } = await db().auth.updateUser({ password: p });
     if (error) return toast('error', humanError(error));
+    await db().rpc('log_password_change');       // registra e encerra a obrigação de troca
+    await db().auth.refreshSession();            // renova o token sem a marca de troca obrigatória
     toast('ok', 'Senha atualizada.');
     nav(dashboardPath(profile?.role));
   };
+  const forced = new URLSearchParams(location.search).has('obrigatorio');
   return (
-    <Shell title="Nova senha">
+    <Shell title="Nova senha" subtitle={forced ? 'Você entrou com uma senha provisória definida pela equipe. Crie uma senha só sua para continuar.' : undefined}>
       <form onSubmit={submit} className="space-y-4">
         <Field label="Nova senha" hint="Mínimo 8 caracteres, com letras e números."><input name="password" type="password" required autoComplete="new-password" className="input" /></Field>
         <button className="btn-silver w-full">Salvar nova senha</button>

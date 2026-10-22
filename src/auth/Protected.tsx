@@ -15,6 +15,8 @@ export function Protected({ role, children }: { role: Role | Role[]; children: R
   if (!isConfigured) return <div className="container-x py-32"><ConfigNotice /></div>;
   if (loading || (session && !profile)) return <div className="grid min-h-[60vh] place-items-center"><Spinner /></div>;
   if (!session) return <Navigate to={`/entrar?voltar=${encodeURIComponent(loc.pathname)}`} replace />;
+  // Senha provisória definida pela administração: só avança depois de criar uma nova.
+  if (session.user.app_metadata?.must_change_password) return <Navigate to="/nova-senha?obrigatorio=1" replace />;
   if (profile && !roles.includes(profile.role)) return <Navigate to={dashboardPath(profile.role)} replace />;
   return <>{children}</>;
 }

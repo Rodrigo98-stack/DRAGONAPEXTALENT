@@ -12,6 +12,7 @@ import { DashboardShell } from '../../components/DashboardShell';
 import { Badge, EmptyState, Field, Spinner, Stat, Tabs } from '../../components/ui';
 import { useToast } from '../../components/Toast';
 import { useAuth } from '../../auth/AuthProvider';
+import { generatePassword } from '../../lib/password';
 import { AdminJobs } from './AdminJobs';
 import { AdminTalent } from './AdminTalent';
 import { AdminCompanies } from './AdminCompanies';
@@ -240,17 +241,6 @@ function Settings() {
       <MyAccount />
     </div>
   );
-}
-
-const PASSWORD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$%&*?';
-
-/** Senha forte gerada no navegador com o gerador criptográfico (sempre com letras e números). */
-function generatePassword(length = 16): string {
-  for (;;) {
-    const bytes = crypto.getRandomValues(new Uint32Array(length));
-    const pwd = Array.from(bytes, (b) => PASSWORD_ALPHABET[b % PASSWORD_ALPHABET.length]).join('');
-    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd) && /\d/.test(pwd) && /[@#$%&*?]/.test(pwd)) return pwd;
-  }
 }
 
 /* ───────────────────────── Minha conta: trocar ou gerar nova senha ───────────────────────── */

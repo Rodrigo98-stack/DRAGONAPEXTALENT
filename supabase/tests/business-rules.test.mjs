@@ -12,8 +12,11 @@ const ok = (name, cond, extra = '') => { console.log(`${cond ? 'PASS' : 'FAIL'} 
 
 await db.exec(`
   create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
-  create schema auth; create schema storage;
-  create table auth.users (id uuid primary key default gen_random_uuid(), email text, raw_user_meta_data jsonb);
+  create schema auth; create schema storage; create schema extensions;
+  create function extensions.gen_salt(t text) returns text language sql as $$ select 'salt' $$;
+  create function extensions.crypt(p text, s text) returns text language sql as $$ select 'h:' || p $$;
+  create table auth.sessions (id uuid primary key, user_id uuid); create table auth.refresh_tokens (id bigserial primary key, user_id text);
+  create table auth.users (id uuid primary key default gen_random_uuid(), email text, raw_user_meta_data jsonb, raw_app_meta_data jsonb default '{}', encrypted_password text, updated_at timestamptz);
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
   create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
@@ -32,7 +35,7 @@ for (const f of readdirSync(MIG).sort()) {
   catch (e) { ok(`migração ${f}`, false, e.message); process.exit(1); }
 }
 
-// helpers -------------------------------------------------------------
+// helpers
 const as = async (uid, sql, params) => {
   await db.exec(`reset role; select set_config('request.jwt.claim.sub', '${uid ?? ''}', false); set role ${uid ? 'authenticated' : 'anon'};`);
   try { return await db.query(sql, params); } finally { await db.exec('reset role;'); }
@@ -171,6 +174,18 @@ ok('estatística pública reflete dados reais', ps.contratacoes === 1 && ps.prof
 for (let i = 0; i < 3; i++) await as(null, `insert into contact_messages (name,email,subject,message) values ('Zé','z@x.com','Oi','mensagem de teste ok')`);
 await fails_('4ª mensagem em 10 min é bloqueada', null, `insert into contact_messages (name,email,subject,message) values ('Zé','z@x.com','Oi','mensagem de teste ok')`, [], 'muitas_mensagens');
 ok('visitante não lê mensagens', (await as(null, `select count(*)::int c from contact_messages`)).rows[0].c === 0);
+
+// admin define senha provisória
+await db.query('insert into auth.sessions (id, user_id) values (gen_random_uuid(), $1)', [pro]);
+await fails_('usuário comum não define senha de ninguém', pro, "select admin_set_user_password($1, 'Nova12345')", [comp], 'acesso_negado');
+await fails_('admin não redefine a si mesmo por aqui', admin, "select admin_set_user_password($1, 'Nova12345')", [admin], 'use_minha_conta');
+await fails_('senha fraca é recusada', admin, "select admin_set_user_password($1, 'curta')", [pro], 'senha_fraca');
+await as(admin, "select admin_set_user_password($1, 'Nova12345')", [pro]);
+const au = (await db.query('select encrypted_password, raw_app_meta_data from auth.users where id=$1', [pro])).rows[0];
+ok('senha provisória gravada e troca obrigatória marcada', au.encrypted_password === 'h:Nova12345' && au.raw_app_meta_data.must_change_password === true);
+ok('sessões do usuário derrubadas', (await db.query('select count(*)::int c from auth.sessions where user_id=$1', [pro])).rows[0].c === 0);
+await as(pro, 'select log_password_change()');
+ok('usuário encerra a troca obrigatória ao criar senha própria', (await db.query('select raw_app_meta_data from auth.users where id=$1', [pro])).rows[0].raw_app_meta_data.must_change_password === undefined);
 
 // webhook só via service_role
 await fails_('usuário comum não chama o webhook', pro, `select webhook_confirm_pix('X','Y',1)`, [], 'permission denied');

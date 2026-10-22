@@ -22,13 +22,13 @@ Sem o `.env.local`, o site institucional funciona normalmente. Login, cadastros 
 | `npm run dev` | servidor de desenvolvimento |
 | `npm run build` | checagem de tipos + build de produção em `dist/` |
 | `npm test` | testes unitários (gerador PIX e índice de compatibilidade) |
-| `npm run test:db` | roda as 6 migrações num PostgreSQL embutido e valida 64 regras de negócio e segurança |
+| `npm run test:db` | roda as 8 migrações num PostgreSQL embutido e valida 64 regras de negócio e segurança |
 
 ## 2. Configurar o Supabase
 
 1. Crie um projeto em https://supabase.com e copie **Project URL** e **anon public key** para o `.env.local`.
 2. No **SQL Editor**, execute em ordem os arquivos de `supabase/migrations/`:
-   `0001_schema.sql` → `0002_functions.sql` → `0003_rls_storage.sql` → `0004_cron.sql` → `0005_webhook.sql` → `0006_hardening.sql`
+   `0001_schema.sql` → `0002_functions.sql` → `0003_rls_storage.sql` → `0004_cron.sql` → `0005_webhook.sql` → `0006_hardening.sql` → `0007_password_audit.sql` → `0008_admin_set_password.sql`
    (ou `supabase link` + `supabase db push`).
 3. **Authentication → URL Configuration**: defina o *Site URL* (domínio de produção) e adicione
    `http://localhost:5180/**` em *Redirect URLs*. Mantenha **Confirm email** ativado.
@@ -156,3 +156,10 @@ renovada. Pausar ou encerrar antes devolve os dias inteiros não usados. A admin
 9. Admin cria curso pago com módulos e aulas → publica → aluno compra → conteúdo bloqueado até confirmar → conclui → certificado.
 10. Acessar `/admin` com conta não-admin → redirecionado.
 11. Repetir no celular (menu, formulários, Kanban com seletor de etapa).
+
+## 8. Senhas (administração)
+
+- **Minha conta** (Admin → Configurações): o administrador troca a própria senha (reautentica com a atual) ou gera uma senha forte.
+- **Definir nova senha para profissional ou empresa** (Admin → Empresas, e a ficha do profissional em Admin → Profissionais): gera uma senha provisória,
+  mostra uma mensagem pronta para copiar/enviar e **derruba as sessões abertas** da pessoa. No primeiro acesso ela é obrigada a criar uma senha própria.
+  Funciona sem depender de e-mail (RPC `admin_set_user_password`, apenas para admin; não vale para outro admin). Cada uso é registrado na auditoria, sem gravar a senha.

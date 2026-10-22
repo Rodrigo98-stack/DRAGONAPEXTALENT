@@ -8,6 +8,7 @@ import { AREAS, LEVELS, TALENT_STATUS, UFS, WORK_MODES, stageLabel } from '../..
 import type { Job, Profile, ProfessionalProfile, Stage } from '../../lib/types';
 import { Badge, EmptyState, Field, Modal, Spinner } from '../../components/ui';
 import { useToast } from '../../components/Toast';
+import { SetPasswordButton } from '../../components/SetPasswordButton';
 import { completion } from '../pro/ProfileWizard';
 import { openResume } from '../pro/ResumeManager';
 
@@ -162,6 +163,7 @@ function TalentDrawer({ row: p, onClose }: { row: Row; onClose: () => void }) {
           </div>
           <div className="text-white/60">{p.profiles.email} · {p.whatsapp ?? p.profiles.phone}<br />{p.area} · {p.desired_role} · {p.experience_level ? LEVELS[p.experience_level] : '—'} · {p.work_mode ? WORK_MODES[p.work_mode] : '—'}<br />
             {[p.city, p.state].filter(Boolean).join('/')} · Pretensão: {p.salary_negotiable ? 'A combinar' : p.salary_expectation ? money(p.salary_expectation) : '—'} · Disponibilidade: {p.availability ?? '—'}</div>
+          <span className="mr-2 inline-block"><SetPasswordButton userId={p.user_id} name={p.profiles.full_name} email={p.profiles.email} /></span>
           {p.resume && <button className="btn-silver btn-sm" onClick={() => openResume(p.resume!).catch((e) => toast('error', humanError(e)))}>📄 Abrir currículo</button>}
           {p.linkedin_url && <a className="ml-2 text-xs text-silver-light underline" href={p.linkedin_url} target="_blank" rel="noopener noreferrer">LinkedIn / portfólio</a>}
           <div className="text-xs text-white/60"><b className="text-white/80">Técnicas:</b> {p.hard_skills.join(', ') || '—'}<br /><b className="text-white/80">Comportamentais:</b> {p.soft_skills.join(', ') || '—'}<br /><b className="text-white/80">Idiomas:</b> {p.languages.join(', ') || '—'}<br /><b className="text-white/80">Certificações:</b> {p.certifications || '—'}</div>
