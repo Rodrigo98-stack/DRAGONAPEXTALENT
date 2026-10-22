@@ -9,6 +9,7 @@ import type { Job, Profile, ProfessionalProfile, Stage } from '../../lib/types';
 import { Badge, EmptyState, Field, Modal, Spinner } from '../../components/ui';
 import { useToast } from '../../components/Toast';
 import { SetPasswordButton } from '../../components/SetPasswordButton';
+import { CreateAccountButton } from '../../components/CreateAccountButton';
 import { completion } from '../pro/ProfileWizard';
 import { openResume } from '../pro/ResumeManager';
 
@@ -56,6 +57,7 @@ export function AdminTalent() {
 
   return (
     <div className="space-y-5">
+      <div className="flex justify-end"><CreateAccountButton role="professional" onCreated={reload} /></div>
       <div className="card grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
         <input className="input lg:col-span-2" placeholder="Palavras-chave: cargo, competência, curso, cidade…" value={f.q} onChange={(e) => set('q', e.target.value)} />
         <select className="input" value={f.area} onChange={(e) => set('area', e.target.value)} aria-label="Área"><option value="">Área</option>{AREAS.map((a) => <option key={a}>{a}</option>)}</select>

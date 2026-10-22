@@ -23,6 +23,10 @@ const ERRORS: Record<string, string> = {
   vaga_bloqueada_para_edicao: 'Vagas publicadas, pausadas ou encerradas não podem ser editadas.',
   'duplicate key value violates unique constraint "applications_job_id_professional_id_key"': 'Você já se candidatou a esta vaga.',
   'new row violates row-level security policy for table "applications"': 'Ative seu perfil (taxa de R$ 0,15) para se candidatar.',
+  email_ja_cadastrado: 'Já existe uma conta com este e-mail.',
+  email_invalido: 'E-mail inválido.',
+  nome_invalido: 'Informe o nome completo.',
+  empresa_sem_nome: 'Informe o nome da empresa.',
   senha_fraca: 'A senha precisa ter 8+ caracteres, com letras e números.',
   use_minha_conta: 'Para a sua própria senha, use o bloco "Minha conta" nas configurações.',
   nao_permitido_para_admin: 'Não é possível redefinir a senha de outro administrador.',
@@ -31,7 +35,7 @@ const ERRORS: Record<string, string> = {
   'Email not confirmed': 'Confirme seu e-mail pelo link que enviamos antes de entrar.',
   'User already registered': 'Este e-mail já possui cadastro.',
   'Email address not authorized': 'Cadastros temporariamente indisponíveis para este e-mail: o envio de e-mails da plataforma ainda está em configuração.',
-  'email rate limit exceeded': 'Muitos e-mails enviados em pouco tempo. Aguarde alguns minutos e tente de novo.',
+  'email rate limit exceeded': 'O limite de envio de e-mails do sistema foi atingido e o cadastro não pôde ser concluído. Fale com a equipe DRAGON APEX TALENT: criamos sua conta manualmente.',
   'Database error saving new user': 'Não foi possível concluir o cadastro. Confira os dados e o aceite dos termos.',
 };
 

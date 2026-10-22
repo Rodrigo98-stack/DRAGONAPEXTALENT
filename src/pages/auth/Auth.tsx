@@ -236,22 +236,35 @@ export function UpdatePassword() {
   const toast = useToast();
   const nav = useNavigate();
   const { profile } = useAuth();
+  const forced = new URLSearchParams(location.search).has('obrigatorio');
+  const [accepted, setAccepted] = useState(false);
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const p = String(new FormData(e.currentTarget).get('password'));
     if (!passwordRule(p)) return toast('error', 'Mínimo 8 caracteres, com letras e números.');
     const { error } = await db().auth.updateUser({ password: p });
     if (error) return toast('error', humanError(error));
-    await db().rpc('log_password_change');       // registra e encerra a obrigação de troca
+    if (forced) {
+      if (!accepted) return toast('error', 'Aceite os Termos de Uso e a Política de Privacidade para continuar.');
+      const r = await db().rpc('complete_first_access');   // registra o aceite e libera o acesso
+      if (r.error) return toast('error', humanError(r.error));
+    } else {
+      await db().rpc('log_password_change');
+    }
     await db().auth.refreshSession();            // renova o token sem a marca de troca obrigatória
     toast('ok', 'Senha atualizada.');
     nav(dashboardPath(profile?.role));
   };
-  const forced = new URLSearchParams(location.search).has('obrigatorio');
   return (
     <Shell title="Nova senha" subtitle={forced ? 'Você entrou com uma senha provisória definida pela equipe. Crie uma senha só sua para continuar.' : undefined}>
       <form onSubmit={submit} className="space-y-4">
         <Field label="Nova senha" hint="Mínimo 8 caracteres, com letras e números."><input name="password" type="password" required autoComplete="new-password" className="input" /></Field>
+        {forced && (
+          <label className="flex gap-3 text-xs leading-relaxed text-white/60">
+            <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-0.5 accent-[#B9BEC5]" />
+            <span>Li e aceito os <Link to="/termos" target="_blank" className="text-silver-light underline">Termos de Uso</Link> e autorizo o tratamento dos meus dados conforme a <Link to="/privacidade" target="_blank" className="text-silver-light underline">Política de Privacidade</Link> (LGPD).</span>
+          </label>
+        )}
         <button className="btn-silver w-full">Salvar nova senha</button>
       </form>
     </Shell>

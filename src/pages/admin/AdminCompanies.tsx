@@ -6,6 +6,7 @@ import type { Company } from '../../lib/types';
 import { Badge, EmptyState, Modal, Spinner } from '../../components/ui';
 import { useToast } from '../../components/Toast';
 import { SetPasswordButton } from '../../components/SetPasswordButton';
+import { CreateAccountButton } from '../../components/CreateAccountButton';
 
 type Row = Company & { jobs: { status: string }[] };
 
@@ -36,7 +37,10 @@ export function AdminCompanies() {
   if (loading) return <Spinner />;
   return (
     <div className="space-y-5">
-      <input className="input max-w-sm" placeholder="Buscar empresa, CNPJ, e-mail…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <input className="input max-w-sm" placeholder="Buscar empresa, CNPJ, e-mail…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <CreateAccountButton role="company" onCreated={reload} />
+      </div>
       {list.length ? (
         <div className="card overflow-x-auto p-2"><table className="table">
           <thead><tr><th>Empresa</th><th>Responsável</th><th>Vagas</th><th>Saldo</th><th>Situação</th><th className="text-right">Ações</th></tr></thead>

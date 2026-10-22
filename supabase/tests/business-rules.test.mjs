@@ -16,7 +16,9 @@ await db.exec(`
   create function extensions.gen_salt(t text) returns text language sql as $$ select 'salt' $$;
   create function extensions.crypt(p text, s text) returns text language sql as $$ select 'h:' || p $$;
   create table auth.sessions (id uuid primary key, user_id uuid); create table auth.refresh_tokens (id bigserial primary key, user_id text);
-  create table auth.users (id uuid primary key default gen_random_uuid(), email text, raw_user_meta_data jsonb, raw_app_meta_data jsonb default '{}', encrypted_password text, updated_at timestamptz);
+  create table auth.users (id uuid primary key default gen_random_uuid(), instance_id uuid, aud text, role text, email text, raw_user_meta_data jsonb, raw_app_meta_data jsonb default '{}', encrypted_password text, email_confirmed_at timestamptz, created_at timestamptz, updated_at timestamptz,
+    confirmation_token text, recovery_token text, email_change_token_new text, email_change text, email_change_token_current text, phone_change text, phone_change_token text, reauthentication_token text);
+  create table auth.identities (id uuid primary key, user_id uuid, provider text, provider_id text, identity_data jsonb, last_sign_in_at timestamptz, created_at timestamptz, updated_at timestamptz);
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
   create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text);
@@ -186,6 +188,27 @@ ok('senha provisória gravada e troca obrigatória marcada', au.encrypted_passwo
 ok('sessões do usuário derrubadas', (await db.query('select count(*)::int c from auth.sessions where user_id=$1', [pro])).rows[0].c === 0);
 await as(pro, 'select log_password_change()');
 ok('usuário encerra a troca obrigatória ao criar senha própria', (await db.query('select raw_app_meta_data from auth.users where id=$1', [pro])).rows[0].raw_app_meta_data.must_change_password === undefined);
+
+// admin cria conta (sem e-mail)
+await fails_('usuário comum não cria contas', pro, "select admin_create_user('x@y.com','Fulano de Tal','8199','professional','Senha12345')", [], 'acesso_negado');
+await fails_('senha fraca na criação é recusada', admin, "select admin_create_user('x@y.com','Fulano de Tal','8199','professional','curta')", [], 'senha_fraca');
+await fails_('e-mail já cadastrado é recusado', admin, "select admin_create_user('PRO@x.com','Fulano de Tal','8199','professional','Senha12345')", [], 'email_ja_cadastrado');
+await fails_('papel admin não pode ser criado por aqui', admin, "select admin_create_user('x@y.com','Fulano de Tal','8199','admin','Senha12345')", [], 'papel_invalido');
+const newPro = (await as(admin, "select admin_create_user('ana@teste.com','Ana Letícia','81999990000','professional','Senha12345') id")).rows[0].id;
+const nu = (await db.query('select email_confirmed_at, raw_app_meta_data, confirmation_token from auth.users where id=$1', [newPro])).rows[0];
+ok('conta criada já confirmada, com troca obrigatória', !!nu.email_confirmed_at && nu.raw_app_meta_data.must_change_password === true && nu.confirmation_token === '');
+ok('identidade de e-mail criada para o login', (await db.query('select count(*)::int c from auth.identities where user_id=$1 and provider=$2', [newPro, 'email'])).rows[0].c === 1);
+ok('perfil e perfil profissional criados pelo gatilho', (await db.query('select count(*)::int c from professional_profiles where user_id=$1', [newPro])).rows[0].c === 1);
+ok('nenhum consentimento é registrado em nome da pessoa', (await db.query('select count(*)::int c from consents where user_id=$1', [newPro])).rows[0].c === 0);
+await as(newPro, 'select log_password_change()');
+ok('trocar a senha sem aceitar os termos NÃO libera o acesso', (await db.query('select raw_app_meta_data from auth.users where id=$1', [newPro])).rows[0].raw_app_meta_data.must_change_password === true);
+await as(newPro, 'select complete_first_access()');
+ok('aceitar os termos libera o acesso e registra o consentimento', (await db.query('select raw_app_meta_data from auth.users where id=$1', [newPro])).rows[0].raw_app_meta_data.must_change_password === undefined
+  && (await db.query("select count(*)::int c from consents where user_id=$1 and kind='termos_uso'", [newPro])).rows[0].c === 1);
+const newComp = (await as(admin, "select admin_create_user('rh@nova.com','Maria RH','8133','company','Senha12345','{\"name\":\"Nova LTDA\",\"state\":\"PE\"}'::jsonb) id")).rows[0].id;
+ok('empresa criada pela administração fica sem termos aceitos', (await db.query('select name, terms_accepted_at from companies where owner_id=$1', [newComp])).rows[0].terms_accepted_at === null);
+await as(newComp, 'select complete_first_access()');
+ok('empresa registra o aceite no primeiro acesso', (await db.query('select terms_accepted_at from companies where owner_id=$1', [newComp])).rows[0].terms_accepted_at !== null);
 
 // webhook só via service_role
 await fails_('usuário comum não chama o webhook', pro, `select webhook_confirm_pix('X','Y',1)`, [], 'permission denied');
